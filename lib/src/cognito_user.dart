@@ -1157,4 +1157,32 @@ class CognitoUser {
 
     return true;
   }
+
+	Future<CognitoUserSession?> sendMFASelectionAnswer(String answerChallenge) async {
+    final challengeResponses = {
+      'USERNAME': username,
+      'ANSWER': answerChallenge,
+    };
+
+
+		final paramsReq = {
+			'ChallengeName': 'SELECT_MFA_TYPE',
+			'ChallengeResponses': challengeResponses,
+			'ClientId': pool.getClientId(),
+			'Session': _session,
+		};
+    if (getUserContextData() != null) {
+      paramsReq['UserContextData'] = getUserContextData();
+    }
+
+    final dataAuthenticate = await client!.request('RespondToAuthChallenge',
+        await _analyticsMetadataParamsDecorator.call(paramsReq));
+
+    final authenticationHelper = AuthenticationHelper(
+      pool.getUserPoolId().split('_')[1],
+    );
+
+    return _authenticateUserInternal(dataAuthenticate, authenticationHelper);
+
+	}  
 }
