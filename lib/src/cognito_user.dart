@@ -1184,5 +1184,66 @@ class CognitoUser {
 
     return _authenticateUserInternal(dataAuthenticate, authenticationHelper);
 
-	}  
+	}
+
+  /**
+   * https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_SetUserMFAPreference.html
+   */
+  Future<void> setUserMfaPreference(
+      bool smsEnabled,
+      bool smsPreferred,
+      bool softwareTokenEnabled,
+      bool softwareTokenPreferred
+  ) async {
+    if (_signInUserSession == null || !_signInUserSession!.isValid()) {
+      throw Exception('User is not authenticated');
+    }
+
+    final paramsReq = {
+      'AccessToken': _signInUserSession!.getAccessToken().getJwtToken(),
+      'SMSMfaSettings': {
+        'Enabled': smsEnabled,
+        'PreferredMfa': smsPreferred
+      },
+      'SoftwareTokenMfaSettings': {
+        'Enabled': softwareTokenEnabled,
+        'PreferredMfa': softwareTokenPreferred
+      },
+    };
+    await client!.request('SetUserMFAPreference', paramsReq);
+  }
+
+  /**
+   * https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_AssociateSoftwareToken.html
+   */
+  Future<String> associateSoftwareToken() async {
+    if (_signInUserSession == null || !_signInUserSession!.isValid()) {
+      throw Exception('User is not authenticated');
+    }
+
+    final paramsReq = {
+      'AccessToken': _signInUserSession!.getAccessToken().getJwtToken(),
+    };
+    final response = await client!.request('AssociateSoftwareToken', paramsReq);
+    String secretCode = response['SecretCode'] ?? '';
+    return secretCode;
+  }
+
+  /**
+   * https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_VerifySoftwareToken.html
+   */
+  Future<bool> verifySoftwareToken(String totpCode, String friendlyDeviceName) async {
+    if (_signInUserSession == null || !_signInUserSession!.isValid()) {
+      throw Exception('User is not authenticated');
+    }
+
+    final paramsReq = {
+      'AccessToken': _signInUserSession!.getAccessToken().getJwtToken(),
+      'UserCode': totpCode,
+      'FriendlyDeviceName': friendlyDeviceName,
+    };
+    final response = await client!.request('VerifySoftwareToken', paramsReq);
+    String? status = response['Status']; // SUCCESS or ERROR
+    return status == 'SUCCESS';
+  }
 }
